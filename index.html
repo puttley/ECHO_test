@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaming Controller</title>
+
+</head>
+<body>
+
+
+    <div class="controller">
+        <div class="button up" id="tup">up</div>
+        <div class="button left" id="spinL">spin L</div>
+        <div class="button center" id="tcenter">center</div>
+        <div class="button right" id="spinR">spin R</div>
+        <div class="button down" id="tdown">down</div>
+        <div class="button a" id="connect">connect</div>
+        <label class="status" id="connectionStatus">Not connected</label>
+        <div class="button b" id="disconnect">disconnect</div>
+    </div>
+
+    <div class="controller">
+        <div class="button up" id="fwd">fwd</div>
+        <div class="button left" id="left">left</div>
+        <div class="button center" id="center">center</div>
+        <div class="button right" id="right">right</div>
+        <div class="button down" id="rev">rev</div>
+        <div class="button a" id="launch">launch</div>
+        <label class="brand" id="brand">ECHO Test App</label>
+        <div class="button b" id="land">land</div>
+    </div>
+
+
+
+    <script>
+
+       document.body.style.backgroundColor = '#BCD2D1';
+
+       document.getElementById('fwd').addEventListener('click', function() {
+           console.log('FWD button clicked');
+           setCommand(pitch_fwd);
+       });
+
+       document.getElementById('left').addEventListener('click', function() {
+           console.log('Left button clicked');
+           setCommand(roll_left);
+       });
+
+       document.getElementById('center').addEventListener('click', function() {
+           console.log('Center button clicked');
+           setCommand(neutral_hover);
+       });
+
+       document.getElementById('right').addEventListener('click', function() {
+           console.log('Right button clicked');
+           setCommand(roll_right);
+       });
+
+       document.getElementById('rev').addEventListener('click', function() {
+           console.log('REV button clicked');
+           setCommand(pitch_rev);
+       });
+
+       document.getElementById('launch').addEventListener('click', function() {
+           console.log('Launch button clicked');
+           writeLaunch(launch_land);
+       });
+
+       document.getElementById('land').addEventListener('click', function() {
+           console.log('Land button clicked');
+           writeLaunch(launch_land);
+       });
+
+       document.getElementById('tup').addEventListener('click', function() {
+           console.log('Throttle up button clicked');
+           setCommand(throttle_up);
+       });
+
+       document.getElementById('spinL').addEventListener('click', function() {
+           console.log('Spin Left button clicked');
+           setCommand(yaw_left);
+       });
+
+       document.getElementById('tcenter').addEventListener('click', function() {
+           console.log('Throttle Center button clicked');
+           setCommand(neutral_hover);
+       });
+
+       document.getElementById('spinR').addEventListener('click', function() {
+           console.log('Spin Right button clicked');
+           setCommand(yaw_right);
+         });
+
+       document.getElementById('tdown').addEventListener('click', function() {
+           console.log('Throttle Down button clicked');
+           setCommand(throttle_dwn);
+       });
+
+       document.getElementById('connect').addEventListener('click', function() {
+           console.log('Connect button clicked');
+           connect();
+       });
+
+       document.getElementById('disconnect').addEventListener('click', function() {
+           console.log('Disconnect button clicked');
+           disconnect();
+         });
+
+
+       let bluetoothDevice;
+       let bt_status = 0;
+       let services = [];
+       let roll_right    = '204,128,128,0,128,255,64,64,0,0,0,255,51';
+       let roll_left     = '204,128,128,0,128,0,64,64,0,0,0,0,51';
+       let pitch_fwd     = '204,128,128,0,255,128,64,64,0,0,0,255,51';
+       let pitch_rev     = '204,128,128,0,0,128,64,64,0,0,0,0,51';
+       let yaw_left      = '204,128,0,0,128,128,64,64,0,0,0,0,51';
+       let yaw_right     = '204,128,255,0,128,128,64,64,0,0,0,255,51';
+       let launch_land   = '204,128,128,0,128,128,64,64,8,0,0,136,51';
+       let neutral_hover = '204,128,128,0,128,128,64,64,0,0,0,128,51';
+       let throttle_up   = '204,192,128,0,128,128,64,64,0,0,0,192,51';
+       let throttle_dwn  = '204,64,128,0,128,128,64,64,0,0,0,64,51';
+       let cmd = neutral_hover;
+
+
+       async function setCommand(data) {
+         cmd = data;
+         writeCommand(cmd);
+       }
+
+
+       async function connect() {
+         try {
+           document.getElementById('connectionStatus').innerText = 'Attempting to Pair';
+           bluetoothDevice = await navigator.bluetooth.requestDevice({
+             acceptAllDevices: true,
+             optionalServices: ['0000ae00-0000-1000-8000-00805f9b34fb']
+           });
+           const server = await bluetoothDevice.gatt.connect();
+           services = await server.getPrimaryServices();
+           document.getElementById('connectionStatus').innerText = 'Drone Connected';
+           console.log('Connected to Bluetooth device:', bluetoothDevice);
+           bt_status = 1;
+         } catch (error) {
+           document.getElementById('connectionStatus').innerText = 'Error Connecting to Drone';
+           console.error('Error connecting to the Bluetooth device:', error);
+           bt_status = 0;
+         }
+       }
+
+       async function disconnect() {
+         try {
+           await bluetoothDevice.gatt.disconnect();
+           document.getElementById('connectionStatus').innerText = 'Drone Disconnected';
+           console.log('Disconnected from Bluetooth device');
+           bt_status = 0;
+         } catch (error) {
+           document.getElementById('connectionStatus').innerText = 'Error Disconnecting from Drone';
+           console.error('Error disconnecting from the Bluetooth device:', error);
+         }
+       }
+
+       async function listServices() {
+         console.log('Primary services found:');
+         services.forEach(service => {
+           console.log(service.uuid);
+         });
+       }
+
+       async function listCharacteristics() {
+         try {
+           const service = services[0]; // Assuming we want to work with the first service found
+           const characteristics = await service.getCharacteristics();
+           console.log('Characteristics found:');
+           characteristics.forEach(characteristic => {
+             console.log(characteristic.uuid);
+           });
+         } catch (error) {
+           console.error('Error listing characteristics:', error);
+         }
+       }
+
+
+       async function writeCommand(data) {
+         //console.log('here');
+         try {
+           const service = services[0]; // Assuming we want to work with the first service found
+           const characteristic = await service.getCharacteristic('0000ae01-0000-1000-8000-00805f9b34fb');
+           const dataArray = new Uint8Array(data.split(',').map(Number)); // Convert comma-separated string to Uint8Array
+           await characteristic.writeValue(dataArray);
+           console.log('Data written successfully:', dataArray);
+         } catch (error) {
+           document.getElementById('connectionStatus').innerText = 'Wating for connection, or error - try reconnecting';
+           console.error('Error writing data to the characteristic:', error);
+         }
+       }
+
+
+       setInterval(async () => {if (bluetoothDevice) await  writeCommand(cmd); }, 200); // write the current command to the drone every 200ms
+
+
+       async function writeLaunch(data) {
+         try {
+           const service = services[0]; // Assuming we want to work with the first service found
+           const characteristic = await service.getCharacteristic('0000ae01-0000-1000-8000-00805f9b34fb');
+           const dataArray = new Uint8Array(data.split(',').map(Number)); // Convert comma-separated string to Uint8Array
+           await characteristic.writeValue(dataArray);
+           cmd = neutral_hover;
+           console.log('Data written successfully:', dataArray);
+         } catch (error) {
+           console.error('Error writing data to the characteristic:', error);
+         }
+       }
+
+
+       async function writeValue(value) {
+         try {
+           const service = services[0]; // Assuming we want to work with the first service found
+           const characteristic = await service.getCharacteristic('0000ae01-0000-1000-8000-00805f9b34fb');
+           await characteristic.writeValue(new TextEncoder().encode(value));
+           console.log('Value written successfully:', value);
+         } catch (error) {
+           console.error('Error writing value to the characteristic:', error);
+         }
+       }
+
+       async function readValue() {
+         try {
+           const service = services[0]; // Assuming we want to work with the first service found
+           const characteristic = await service.getCharacteristic('0000ae10-0000-1000-8000-00805f9b34fb');
+           const value = await characteristic.readValue();
+           console.log('Value read successfully:', new TextDecoder().decode(value));
+         } catch (error) {
+           console.error('Error reading value from the characteristic:', error);
+         }
+       }
+
+    </script>
+
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .controller {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 10px;
+            width: 300px;
+            height: 300px;
+            background-color: #333;
+            padding: 30px;
+            border-radius: 30px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .button {
+            background-color: #aaa;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .button.up {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .button.left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .button.center {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .button.right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .button.down {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
+        .button.a {
+            grid-column: 1;
+            grid-row: 4;
+        }
+
+        .button.b {
+            grid-column: 3;
+            grid-row: 4;
+        }
+
+        .status {
+            grid-column: 2;
+            grid-row: 5;
+            color: white;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .brand {
+            grid-column: 2;
+            grid-row: 5;
+            color: white;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+
+    </style>
+</body>
+</html>
